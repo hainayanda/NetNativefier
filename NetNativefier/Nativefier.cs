@@ -11,7 +11,7 @@ namespace Nativefier
         private MemoryManager<T> MemoryManager;
         private DiskManager<T> DiskManager;
         
-        public Func<Task<T>> Fetcher;
+        public Func<Task<T>> Fetcher { get; set; }
 
         private IMemoryCacheDelegate<T> _MemoryDelegate;
         public IMemoryCacheDelegate<T> MemoryDelegate
@@ -118,7 +118,7 @@ namespace Nativefier
 
         public T this[string key] { get => Get(key); set => Put(value, key); }
 
-        public Task<T> AsyncGet(string key, Action<T> onCompleted)
+        public Task<T> AsyncGet(string key, Action<T> onCompleted, bool startTaskImmediately)
         {
             key.CheckForNullAndThrow("key cannot be null");
             key.CheckIsEmptyAndThrow("key cannot be empty");
@@ -127,33 +127,36 @@ namespace Nativefier
             {
                 return Get(key);
             });
-            task.ContinueWith((Task<T> completedTask) =>
+            if(onCompleted != null) task.ContinueWith((Task<T> completedTask) =>
             {
                 onCompleted(completedTask.Result);
             });
-            task.Start();
+
+            if (startTaskImmediately) task.Start();
             return task;
         }
 
-        public Task<T> AsyncGetOrFetch(string key, Action<T> onCompleted)
+        public Task<T> AsyncGetOrFetch(string key, Action<T> onCompleted, bool startTaskImmediately)
         {
             key.CheckForNullAndThrow("key cannot be null");
             key.CheckIsEmptyAndThrow("key cannot be empty");
+
             var task = new Task<T>(() =>
             {
                 var obj = Get(key);
-                if(obj == null && Fetcher != null)
+                if (obj == null && Fetcher != null)
                 {
                     var fetch = Fetcher?.Invoke();
                     return fetch.Result;
                 }
                 return obj;
             });
-            task.ContinueWith((Task<T> completedTask) =>
+            if (onCompleted != null) task.ContinueWith((Task<T> completedTask) =>
             {
                 onCompleted(completedTask.Result);
             });
-            task.Start();
+
+            if(startTaskImmediately) task.Start();
             return task;
         }
 
@@ -202,5 +205,6 @@ namespace Nativefier
             if (MemoryManager.IsExist(key)) return true;
             return DiskManager.IsExist(key);
         }
+
     }
 }
