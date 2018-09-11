@@ -7,42 +7,42 @@ namespace Nativefier
 {
     public static class INativefierExtension
     {
-        public static void AsyncGetAndForget<S, T>(this S self, string key, Action<T> onCompleted) where S : INativefier<T>
+        public static void AsyncGetAndForget<T>(this INativefier<T> self, string key, Action<T> onCompleted)
         {
             self.AsyncGet(key, onCompleted, true);
         }
 
-        public static void AsyncGetOrFetchAndForget<S, T>(this S self, string key, Action<T> onCompleted) where S : INativefier<T>
+        public static void AsyncGetOrFetchAndForget<T>(this INativefier<T> self, string key, Action<T> onCompleted)
         {
             self.AsyncGetOrFetch(key, onCompleted, true);
         }
 
-        public static Task<T> AsyncGet<S, T>(this S self, string key, Action<T> onCompleted) where S : INativefier<T>
+        public static Task<T> AsyncGet<T>(this INativefier<T> self, string key, Action<T> onCompleted)
         {
             return self.AsyncGet(key, onCompleted, true);
         }
 
-        public static Task<T> AsyncGetOrFetch<S, T>(this S self, string key, Action<T> onCompleted) where S : INativefier<T>
+        public static Task<T> AsyncGetOrFetch<T>(this INativefier<T> self, string key, Action<T> onCompleted)
         {
             return self.AsyncGetOrFetch(key, onCompleted, true);
         }
 
-        public static Task<T> AsyncGet<S, T>(this S self, string key) where S : INativefier<T>
+        public static Task<T> AsyncGet<T>(this INativefier<T> self, string key)
         {
             return self.AsyncGet(key, null, true);
         }
 
-        public static Task<T> AsyncGetOrFetch<S, T>(this S self, string key) where S : INativefier<T>
+        public static Task<T> AsyncGetOrFetch<T>(this INativefier<T> self, string key)
         {
             return self.AsyncGetOrFetch(key, null, true);
         }
 
-        public static Task<T> AsyncGet<S, T>(this S self, string key, bool startTaskImmediately) where S : INativefier<T>
+        public static Task<T> AsyncGet<T>(this INativefier<T> self, string key, bool startTaskImmediately)
         {
             return self.AsyncGet(key, null, startTaskImmediately);
         }
 
-        public static Task<T> AsyncGetOrFetch<S, T>(this S self, string key, bool startTaskImmediately) where S : INativefier<T>
+        public static Task<T> AsyncGetOrFetch<T>(this INativefier<T> self, string key, bool startTaskImmediately)
         {
             return self.AsyncGetOrFetch(key, null, startTaskImmediately);
         }

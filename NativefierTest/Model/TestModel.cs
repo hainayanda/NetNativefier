@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 
 namespace NativefierTest.Model
 {
+    [Serializable]
     public class TestModel
     {
         public string Str { get; set; }
@@ -19,19 +20,6 @@ namespace NativefierTest.Model
             Integer = integer;
             Dbl = dbl;
             Sub = sub;
-        }
-
-        public static bool operator ==(TestModel left, TestModel right)
-        {
-            if (left == null && right != null) return false;
-            else if (left != null && right == null) return false;
-            else if (left == null && right == null) return true;
-            return left.Equals(right);
-        }
-
-        public static bool operator !=(TestModel left, TestModel right)
-        {
-            return !(left == right);
         }
 
         public override bool Equals(object obj)
@@ -55,6 +43,7 @@ namespace NativefierTest.Model
         }
     }
 
+    [Serializable]
     public class SubTestModel
     {
         public string Str { get; set; }
@@ -68,22 +57,10 @@ namespace NativefierTest.Model
             Dbl = dbl;
         }
 
-        public static bool operator== (SubTestModel left, SubTestModel right)
-        {
-            if (left == null && right != null) return false;
-            else if (left != null && right == null) return false;
-            else if (left == null && right == null) return true;
-            return left.Equals(right);
-        }
-
-        public static bool operator!= (SubTestModel left, SubTestModel right)
-        {
-            return !(left == right);
-        }
-
         public override bool Equals(object obj)
         {
-            return obj is SubTestModel model &&
+            var model = obj as SubTestModel;
+            return model != null &&
                    Str == model.Str &&
                    Integer == model.Integer &&
                    Dbl == model.Dbl;

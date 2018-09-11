@@ -90,7 +90,6 @@ namespace Nativefier.Manager
             obj.CheckForNullAndThrow("object cannot be null");
 
             ConcurentWriteFor(obj, forKey);
-            lock(Index) Index.AddFirst(forKey);
             Accessing(forKey);
         }
 
@@ -102,7 +101,7 @@ namespace Nativefier.Manager
             if (WillRemoveAction != null)
             {
                 var obj = SecretlyGet(key);
-                if (!obj.Equals(default(T))) WillRemoveAction.Invoke(obj);
+                if(!EqualityComparer<T>.Default.Equals(obj, default(T))) WillRemoveAction.Invoke(obj);
             }
             ConcurentDeleteFor(key);
             lock (Index) Index.Remove(key);
@@ -113,8 +112,6 @@ namespace Nativefier.Manager
         {
             key.CheckForNullAndThrow();
             key.CheckIsEmptyAndThrow();
-
-            if (!IsExist(key)) return default(T);
             return ConcurentReadFor(key);
         }
 
@@ -139,11 +136,8 @@ namespace Nativefier.Manager
                     Index.RemoveLast();
                     count = Index.Count;
                 }
-                if (WillRemoveAction != null)
-                {
-                    var obj = SecretlyGet(key);
-                    if (!obj.Equals(default(T))) WillRemoveAction.Invoke(obj);
-                }
+                var obj = SecretlyGet(lastKey);
+                if (!EqualityComparer<T>.Default.Equals(obj, default(T))) WillRemoveAction?.Invoke(obj);
                 ConcurentDeleteFor(lastKey);
             }
             ConcurentIndexUpdate();
@@ -172,34 +166,52 @@ namespace Nativefier.Manager
         private void WriteToIndex()
         {
             var indexPath = Path.Combine(CachePath, "index.idx");
-            var indexFile = new FileStream(indexPath, FileMode.Create, FileAccess.Write, FileShare.None);
-            var indexWriter = new StreamWriter(indexFile);
-            string[] indexArray;
-            lock (Index)
+            using (FileStream indexFile = new FileStream(indexPath, FileMode.Create, FileAccess.Write, FileShare.None))
             {
-                indexArray = new string[Index.Count];
-                Index.CopyTo(indexArray, 0);
+                using (StreamWriter indexWriter = new StreamWriter(indexFile))
+                {
+                    string[] indexArray;
+                    lock (Index)
+                    {
+                        indexArray = new string[Index.Count];
+                        Index.CopyTo(indexArray, 0);
+                    }
+                    foreach (var key in indexArray)
+                    {
+                        indexWriter.WriteLine(key);
+                    }
+                    indexWriter.Dispose();
+                }
+                indexFile.Close();
             }
-            foreach(var key in indexArray)
-            {
-                indexWriter.WriteLine(key);
-            }
-            indexWriter.Dispose();
         }
 
         private LinkedList<string> ReadIndex()
         {
-            var indexPath = Path.Combine(CachePath, "index.idx");
             var result = new LinkedList<string>();
-            if (!File.Exists(indexPath)) return result;
-            var stream = new FileStream(indexPath, FileMode.Open, FileAccess.Read, FileShare.Read);
-            var reader = new StreamReader(stream);
-            var line = reader.ReadLine();
-            while (line != null)
+            if (!Directory.Exists(CachePath))
             {
-                result.AddLast(line);
+                Directory.CreateDirectory(CachePath);
+                return result;
             }
-            return result;
+            var indexPath = Path.Combine(CachePath, "index.idx");
+            if (!File.Exists(indexPath)) return result;
+            using (FileStream stream = new FileStream(indexPath, FileMode.Open, FileAccess.Read, FileShare.Read))
+            {
+                stream.Seek(0, SeekOrigin.Begin);
+                using (StreamReader reader = new StreamReader(stream))
+                {
+                    var line = reader.ReadLine();
+                    while (line != null)
+                    {
+                        result.AddLast(line);
+                        line = reader.ReadLine();
+                    }
+                    reader.Dispose();
+                }
+                stream.Close();
+                return result;
+            }
         }
 
         private string GetObjectPathFor(string key)
@@ -238,7 +250,10 @@ namespace Nativefier.Manager
                 {
                     DeleteFromDiskFor(key);
                 }
-                catch (Exception) { }
+                catch (Exception e)
+                {
+                    Console.WriteLine(e.ToString());
+                }
             });
             task.ContinueWith((finishedTask) =>
             {
@@ -254,15 +269,16 @@ namespace Nativefier.Manager
             key.CheckIsEmptyAndThrow();
 
             var fromPending = GetFromPendingFor(key);
-            if (!fromPending.Equals(default(T))) return fromPending;
+            if (!EqualityComparer<T>.Default.Equals(fromPending, default(T))) return fromPending;
             var task = new Task<T>(() =>
             {
                 try
                 {
                     return GetFromDiskFor(key);
                 }
-                catch (Exception)
+                catch (Exception e)
                 {
+                    Console.WriteLine(e.ToString());
                     return default(T);
                 }
             });
@@ -301,10 +317,10 @@ namespace Nativefier.Manager
             });
             PendingRead.TryGetValue(key, out var fromReadingTask);
             fromWritingTask.Start();
-            var readResult = fromReadingTask.Result;
             var writeResult = fromWritingTask.Result;
-            if (!writeResult.Equals(default(T))) return writeResult;
-            else return readResult;
+            if (!EqualityComparer<T>.Default.Equals(writeResult, default(T))) return writeResult;
+            else if (fromReadingTask != null) return fromReadingTask.Result;
+            else return default(T);
             
         }
 
@@ -338,7 +354,10 @@ namespace Nativefier.Manager
                 {
                     WriteToDisk(obj, forKey);
                 }
-                catch (Exception) { }
+                catch (Exception e)
+                {
+                    Console.WriteLine(e.ToString());
+                }
                 int count;
                 lock (PendingWrite) count = PendingWrite.Count;
                 while (count > 0)
@@ -354,7 +373,10 @@ namespace Nativefier.Manager
                     {
                         WriteToDisk(pair._1, pair._0);
                     }
-                    catch (Exception) { }
+                    catch (Exception e)
+                    {
+                        Console.WriteLine(e.ToString());
+                    }
                     lock (PendingWrite) count = PendingWrite.Count;
                 }
                 Writing = null;
@@ -369,9 +391,11 @@ namespace Nativefier.Manager
 
             var objPath = GetObjectPathFor(forKey);
             var formatter = new BinaryFormatter();
-            var stream = new FileStream(objPath, FileMode.Create, FileAccess.Write, FileShare.None);
-            formatter.Serialize(stream, obj);
-            stream.Close();
+            using (FileStream stream = new FileStream(objPath, FileMode.Create, FileAccess.Write, FileShare.None))
+            {
+                formatter.Serialize(stream, obj);
+                stream.Close();
+            }
         }
 
         private void DeleteFromDiskFor(string key)
@@ -391,10 +415,13 @@ namespace Nativefier.Manager
             var objPath = GetObjectPathFor(key);
             if (!File.Exists(objPath)) return default(T);
             var formatter = new BinaryFormatter();
-            var stream = new FileStream(objPath, FileMode.Open, FileAccess.Read, FileShare.Read);
-            T obj = (T)formatter.Deserialize(stream);
-            stream.Close();
-            return obj;
+            using (FileStream stream = new FileStream(objPath, FileMode.Open, FileAccess.Read, FileShare.Read))
+            {
+                stream.Seek(0, SeekOrigin.Begin);
+                T obj = (T)formatter.Deserialize(stream);
+                stream.Close();
+                return obj;
+            }
         }
     }
 }

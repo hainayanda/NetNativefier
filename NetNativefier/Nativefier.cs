@@ -55,11 +55,11 @@ namespace Nativefier
                 {
                     DiskManager.WillClearAction = () =>
                     {
-                        _MemoryDelegate.OnClearMemory(this);
+                        _DiskDelegate.OnClearDisk(this);
                     };
                     DiskManager.WillRemoveAction = (T obj) =>
                     {
-                        _MemoryDelegate.OnRemoveMemory(this, obj);
+                        _DiskDelegate.OnRemoveDisk(this, obj);
                     };
                 }
                 else
