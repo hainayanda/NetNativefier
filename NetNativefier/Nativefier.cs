@@ -12,6 +12,16 @@ namespace Nativefier
         private DiskManager<T> DiskManager;
         
         public Func<Task<T>> Fetcher { get; set; }
+        public INativefierSerializer<T> Serializer {
+            get
+            {
+                return DiskManager.Serializer;
+            }
+            set
+            {
+                DiskManager.Serializer = value;
+            }
+        }
 
         private IMemoryCacheDelegate<T> _MemoryDelegate;
         public IMemoryCacheDelegate<T> MemoryDelegate

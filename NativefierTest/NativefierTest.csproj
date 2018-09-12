@@ -49,6 +49,9 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Model\TestModel.cs" />
+    <Compile Include="Model\TestModelBytes.cs" />
+    <Compile Include="NativefierBytesSerializerTest.cs" />
+    <Compile Include="NativefierStringSerializerTest.cs" />
     <Compile Include="NativefierTest.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>

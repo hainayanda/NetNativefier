@@ -24,6 +24,7 @@ namespace Nativefier.Manager
 
         internal Action WillClearAction;
         internal Action<T> WillRemoveAction;
+        internal INativefierSerializer<T> Serializer;
 
         internal DiskManager(int maxCount, string appName)
         {
@@ -389,6 +390,11 @@ namespace Nativefier.Manager
             forKey.CheckIsEmptyAndThrow();
             obj.CheckForNullAndThrow();
 
+            if(Serializer != null)
+            {
+                WriteToDiskUsing(Serializer, obj, forKey);
+                return;
+            }
             var objPath = GetObjectPathFor(forKey);
             var formatter = new BinaryFormatter();
             using (FileStream stream = new FileStream(objPath, FileMode.Create, FileAccess.Write, FileShare.None))
@@ -396,6 +402,18 @@ namespace Nativefier.Manager
                 formatter.Serialize(stream, obj);
                 stream.Close();
             }
+        }
+
+        private void WriteToDiskUsing(INativefierSerializer<T> serializer, T obj, string forKey)
+        {
+            forKey.CheckForNullAndThrow();
+            forKey.CheckIsEmptyAndThrow();
+            obj.CheckForNullAndThrow();
+            serializer.CheckForNullAndThrow();
+
+            var objPath = GetObjectPathFor(forKey);
+            var bytes = serializer.Serialize(obj);
+            File.WriteAllBytes(objPath, bytes);
         }
 
         private void DeleteFromDiskFor(string key)
@@ -414,6 +432,12 @@ namespace Nativefier.Manager
 
             var objPath = GetObjectPathFor(key);
             if (!File.Exists(objPath)) return default(T);
+
+            if(Serializer != null)
+            {
+                var bytes = File.ReadAllBytes(objPath);
+                return Serializer.Deserialize(bytes);
+            }
             var formatter = new BinaryFormatter();
             using (FileStream stream = new FileStream(objPath, FileMode.Open, FileAccess.Read, FileShare.Read))
             {

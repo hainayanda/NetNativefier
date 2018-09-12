@@ -1,7 +1,21 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
+    <ApplicationIcon />
+    <Win32Resource />
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <Authors>Nayanda Haberty</Authors>
+    <Description>Cache library for .net</Description>
+    <PackageProjectUrl>https://github.com/nayanda1/NetNativefier</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/nayanda1/NetNativefier</RepositoryUrl>
+    <PackageLicenseUrl>https://github.com/nayanda1/NetNativefier/blob/master/LICENSE</PackageLicenseUrl>
+    <PackageTags>Cache</PackageTags>
+    <PackageReleaseNotes>First Release</PackageReleaseNotes>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+    <DocumentationFile>bin\Release\netstandard2.0\Nativefier.xml</DocumentationFile>
   </PropertyGroup>
 
 </Project>
